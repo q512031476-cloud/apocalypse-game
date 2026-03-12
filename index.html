@@ -16,8 +16,8 @@
         .fuel { background: #f39c12; }
         .partner { background: #3498db; }
         .level { background: #9b59b6; }
-        #joystick { position: fixed; bottom: 100px; left: 50px; width: 120px; height: 120px; background: rgba(255,255,255,0.1); border: 2px solid rgba(255,255,255,0.3); border-radius: 50%; }
-        #joystick-knob { position: absolute; width: 50px; height: 50px; background: rgba(255,255,255,0.5); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        #joystick { position: fixed; bottom: 80px; left: 30px; width: 160px; height: 160px; background: rgba(255,255,255,0.15); border: 3px solid rgba(255,255,255,0.4); border-radius: 50%; }
+        #joystick-knob { position: absolute; width: 70px; height: 70px; background: rgba(255,255,255,0.6); border-radius: 50%; top: 50%; left: 50%; transform: translate(-50%, -50%); box-shadow: 0 4px 15px rgba(0,0,0,0.3); }
         #gameOver { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.9); display: none; flex-direction: column; align-items: center; justify-content: center; color: #fff; font-family: Arial, sans-serif; }
         #gameOver h1 { font-size: 48px; margin-bottom: 20px; }
         #gameOver button { padding: 15px 40px; font-size: 20px; background: #e74c3c; color: #fff; border: none; border-radius: 30px; cursor: pointer; }
@@ -323,14 +323,20 @@ class NPC extends Character {
             }
         }
         
-        if (nearestThreat && minThreatDist < 150) {
-            const angle = Math.atan2(this.y - nearestThreat.y, this.x - nearestThreat.x);
-            this.vx = Math.cos(angle) * CONFIG.NPC_SPEED;
-            this.vy = Math.sin(angle) * CONFIG.NPC_SPEED;
-        } else if (nearestPrey && minPreyDist < 200) {
+        // 优先吃猎物（扩大搜索范围）
+        if (nearestPrey && minPreyDist < 400) {
             const angle = Math.atan2(nearestPrey.y - this.y, nearestPrey.x - this.x);
-            this.vx = Math.cos(angle) * CONFIG.NPC_SPEED;
-            this.vy = Math.sin(angle) * CONFIG.NPC_SPEED;
+            this.vx = Math.cos(angle) * CONFIG.NPC_SPEED * 1.5; // 追击时加速
+            this.vy = Math.sin(angle) * CONFIG.NPC_SPEED * 1.5;
+            
+            // 距离够近就吃掉
+            if (minPreyDist < this.size + nearestPrey.size + 5) {
+                this.eat(nearestPrey);
+            }
+        } else if (nearestThreat && minThreatDist < 200) {
+            const angle = Math.atan2(this.y - nearestThreat.y, this.x - nearestThreat.x);
+            this.vx = Math.cos(angle) * CONFIG.NPC_SPEED * 1.2; // 逃跑也加速
+            this.vy = Math.sin(angle) * CONFIG.NPC_SPEED * 1.2;
         } else if (nearestResource && minResourceDist < 300) {
             const angle = Math.atan2(nearestResource.y - this.y, nearestResource.x - this.x);
             this.vx = Math.cos(angle) * CONFIG.NPC_SPEED * 0.8;
@@ -461,7 +467,7 @@ class Game {
             const dx = touch.clientX - startX;
             const dy = touch.clientY - startY;
             const dist = Math.hypot(dx, dy);
-            const maxDist = 35;
+            const maxDist = 45; // 摇杆最大移动距离增大
             
             if (dist > 0) {
                 const scale = Math.min(dist, maxDist) / dist;
